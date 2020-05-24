@@ -124,6 +124,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
     ob = new Observer(value)
   }
   if (asRootData && ob) {
+    // 当使用 Vue.set/$set 函数为根数据对象添加属性时，是不被允许的。因就是根数据对象的 Observer 实例收集不到依赖(观察者)
     ob.vmCount++
   }
   return ob
@@ -150,9 +151,14 @@ export function defineReactive (
   const getter = property && property.get
   const setter = property && property.set
   if ((!getter || setter) && arguments.length === 2) {
+    /*
+    # 保证定义响应式数据行为的一致性
+      !getter: 当没有getter方法或者有setter方法时获取obj的值,也就是说有getter方法的情况下,不会有深度探测
+      setter 但是之后的obj经过后面的Object.defineProperty,obj拥有的set和get拦截器,当我们给key属性重新赋值的话, 新值的观测又要可以工作
+    */
     val = obj[key]
   }
-
+  // val为基础类型的话, 返回undefined
   let childOb = !shallow && observe(val)
   Object.defineProperty(obj, key, {
     enumerable: true,
@@ -173,6 +179,7 @@ export function defineReactive (
     set: function reactiveSetter (newVal) {
       const value = getter ? getter.call(obj) : val
       /* eslint-disable no-self-compare */
+      // (newVal !== newVal && value !== value) 处理NaN
       if (newVal === value || (newVal !== newVal && value !== value)) {
         return
       }
@@ -205,6 +212,7 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
     warn(`Cannot set reactive property on undefined, null, or primitive value: ${(target: any)}`)
   }
   if (Array.isArray(target) && isValidArrayIndex(key)) {
+    // 将数组的长度修改为 target.length 和 key 中的较大者，否则如果当要设置的元素的索引大于数组长度时 splice 无效。
     target.length = Math.max(target.length, key)
     target.splice(key, 1, val)
     return val
@@ -264,6 +272,7 @@ export function del (target: Array<any> | Object, key: any) {
 /**
  * Collect dependencies on array elements when the array is touched, since
  * we cannot intercept array element access like property getters.
+ * 数组的索引是非响应式的, 不能像对象那样设置getter/setter拦截器拦截
  */
 function dependArray (value: Array<any>) {
   for (let e, i = 0, l = value.length; i < l; i++) {

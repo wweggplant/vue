@@ -57,6 +57,10 @@ export default class Watcher {
     // options
     if (options) {
       this.deep = !!options.deep
+      /*
+        用来标识当前观察者实例对象是 开发者定义的 还是 内部定义的
+        除了内部定义的观察者(如：渲染函数的观察者、计算属性的观察者等)之外，所有观察者都被认为是开发者定义的
+      */
       this.user = !!options.user
       this.lazy = !!options.lazy
       this.sync = !!options.sync
@@ -97,6 +101,7 @@ export default class Watcher {
 
   /**
    * Evaluate the getter, and re-collect dependencies.
+   * 依赖收集的过程
    */
   get () {
     pushTarget(this)
@@ -166,8 +171,10 @@ export default class Watcher {
     if (this.lazy) {
       this.dirty = true
     } else if (this.sync) {
+      // 同步
       this.run()
     } else {
+      // 异步, 渲染观察者
       queueWatcher(this)
     }
   }

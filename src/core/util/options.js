@@ -150,6 +150,7 @@ function mergeHook (
   const res = childVal
     ? parentVal
       ? parentVal.concat(childVal)
+      // hooks可以传数组
       : Array.isArray(childVal)
         ? childVal
         : [childVal]
